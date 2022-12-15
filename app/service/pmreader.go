@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/gogf/gf/encoding/gjson"
 	"github.com/gogf/gf/os/gfile"
-	"github.com/gogf/gf/os/glog"
 	"github.com/gogf/gf/os/gtime"
 	"github.com/gogf/gf/util/gconv"
 	"postman-to-md/app/model"
@@ -29,7 +28,7 @@ func (s *pmReaderService) Run() (err error) {
 }
 
 func (s *pmReaderService) ReadJsonFile(contentObj *model.Collection) (err error) {
-	fileContent := gfile.GetContents("/Volumes/HDD/GoProject/postman-to-md/temp/postman_collection.json")
+	fileContent := gfile.GetContents("/Volumes/HDD/GoProject/postman-to-md/temp/api.postman_collection.json")
 	if fileContent == "" {
 		return errors.New("the content of file is empty")
 	}
@@ -60,7 +59,7 @@ func (s *pmReaderService) DataHandler(contentObj *model.Collection) (err error) 
 	if err != nil {
 		return err
 	}
-	err = s.DataItemsHandler(rootPath, contentObj.Item, 2)
+	err = s.DataItemsHandler(rootPath, contentObj.Item, 2, readmeContent)
 	if err != nil {
 		return err
 	}
@@ -68,11 +67,12 @@ func (s *pmReaderService) DataHandler(contentObj *model.Collection) (err error) 
 	return nil
 }
 
-func (s *pmReaderService) DataItemsHandler(path string, items []*model.Item, level int) (err error) {
+func (s *pmReaderService) DataItemsHandler(path string, items []*model.Item, level int, initContent ...string) (err error) {
+	content := ""
+	if len(initContent) > 0 {
+		content += initContent[0]
+	}
 	for _, item := range items {
-		if item.Name == "site" {
-			glog.Line().Debug(item.Name)
-		}
 		if len(item.Item) > 0 {
 			childDirPath := path + "/" + item.Name
 			err = gfile.Mkdir(childDirPath)
@@ -81,16 +81,13 @@ func (s *pmReaderService) DataItemsHandler(path string, items []*model.Item, lev
 			}
 			err = s.DataItemsHandler(childDirPath, item.Item, level+1)
 		} else {
-			content := ""
-			content += MdMaker.Title(item.Name, level)
-			content += MdMaker.Text(item.Description)
-			content += s.DataLeafHandler(item, level+1)
+			content += s.DataLeafHandler(item, level)
 			content += "\n"
-			err = gfile.PutContents(path+"/"+item.Name+".md", content)
-			if err != nil {
-				return err
-			}
 		}
+	}
+	err = gfile.PutContents(path+"/readme.md", content)
+	if err != nil {
+		return err
 	}
 	return err
 }
@@ -123,7 +120,7 @@ func (s *pmReaderService) DataLeafHandler(item *model.Item, level int) (re strin
 	}
 	re += MdMaker.Table(headerTitleSlice, headerDataSlice)
 
-	if item.Request.Body != nil {
+	if item.Request.Body != nil && item.Request.Body.Raw != "" {
 		re += MdMaker.Title("Body", 6)
 		re += MdMaker.Code(item.Request.Body.Raw)
 	}
