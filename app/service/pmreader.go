@@ -14,9 +14,9 @@ var PmReader = &pmReaderService{}
 type pmReaderService struct {
 }
 
-func (s *pmReaderService) Run() (err error) {
+func (s *pmReaderService) Run(param *model.RunParam) (err error) {
 	contentObj := &model.Collection{}
-	err = s.ReadJsonFile(contentObj)
+	err = s.ReadJsonFile(param, contentObj)
 	if err != nil {
 		return err
 	}
@@ -27,8 +27,11 @@ func (s *pmReaderService) Run() (err error) {
 	return nil
 }
 
-func (s *pmReaderService) ReadJsonFile(contentObj *model.Collection) (err error) {
-	fileContent := gfile.GetContents("/Volumes/HDD/GoProject/postman-to-md/temp/api.postman_collection.json")
+func (s *pmReaderService) ReadJsonFile(param *model.RunParam, contentObj *model.Collection) (err error) {
+	if !gfile.IsFile(param.Path) {
+		return errors.New("failed to open the file. Please check whether the file path is correct")
+	}
+	fileContent := gfile.GetContents(param.Path)
 	if fileContent == "" {
 		return errors.New("the content of file is empty")
 	}
