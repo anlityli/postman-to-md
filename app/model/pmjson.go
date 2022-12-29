@@ -49,13 +49,15 @@ type Response struct {
 }
 
 type Header struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
-	Type  string `json:"type"`
+	Key         string `json:"key"`
+	Value       string `json:"value"`
+	Type        string `json:"type"`
+	Description string `json:"description"`
 }
 
 type Url struct {
-	Raw string `json:"raw"`
+	Raw   string    `json:"raw"`
+	Query []*Header `json:"query"`
 }
 
 type Body struct {

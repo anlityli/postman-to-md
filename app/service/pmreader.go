@@ -96,7 +96,10 @@ func (s *pmReaderService) DataItemsHandler(path string, items []*model.Item, lev
 			if err != nil {
 				return err
 			}
-			err = s.DataItemsHandler(childDirPath, item.Item, level+1)
+			fileInitContent := ""
+			fileInitContent += MdMaker.Title(item.Name, level)
+			fileInitContent += MdMaker.Text(item.Description)
+			err = s.DataItemsHandler(childDirPath, item.Item, level+1, fileInitContent)
 		} else {
 			content += s.DataLeafHandler(item, level)
 			content += "\n"
@@ -110,32 +113,67 @@ func (s *pmReaderService) DataItemsHandler(path string, items []*model.Item, lev
 }
 
 func (s *pmReaderService) DataLeafHandler(item *model.Item, level int) (re string) {
+	// title & description
 	re += MdMaker.Title(item.Name, level)
 	re += MdMaker.Text(item.Description)
 
-	requestTableHeaderSlice := []string{
-		"Key",
-		"Value",
+	// request method
+	color := "#0FB348"
+	switch gstr.ToUpper(item.Request.Method) {
+	case "GET":
+		color = "#0FB348"
+	case "POST":
+		color = "#FFCC65"
+	default:
+		color = "#0FB348"
 	}
-	requestTableDataSlice := [][]string{
-		{"Method", item.Request.Method},
-		{"Url", item.Request.Url.Raw},
-	}
-	re += MdMaker.Title("Request", 6)
-	re += MdMaker.Table(requestTableHeaderSlice, requestTableDataSlice)
+	re += MdMaker.Bold(item.Request.Method) + "    " + MdMaker.Color(MdMaker.Bold(item.Name), color) + "\n"
 
-	re += MdMaker.Title("Header", 6)
+	// request url
+	re += MdMaker.Code(item.Request.Url.Raw)
+	re += MdMaker.Text(item.Request.Description)
+
+	// request header
+	re += MdMaker.Title("Request Headers", 6)
 	headerTitleSlice := []string{
 		"Key",
 		"Value",
 	}
 	headerDataSlice := make([][]string, 0)
 	for _, headerItem := range item.Request.Header {
+		itemKey := MdMaker.Bold(headerItem.Key)
+		itemValue := headerItem.Value
+		if headerItem.Description != "" {
+			itemValue += "<br>" + headerItem.Description
+		}
 		tempData := make([]string, 0)
-		tempData = append(tempData, headerItem.Key, headerItem.Value)
+		tempData = append(tempData, itemKey, itemValue)
 		headerDataSlice = append(headerDataSlice, tempData)
 	}
 	re += MdMaker.Table(headerTitleSlice, headerDataSlice)
+
+	// query params
+	if item.Request.Url.Query != nil && len(item.Request.Url.Query) > 0 {
+		re += MdMaker.Title("Query Params", 6)
+		queryParamsTitleSlice := []string{
+			"Key",
+			"Value",
+		}
+		queryParamsDataSlice := make([][]string, 0)
+		for _, queryParamsItem := range item.Request.Url.Query {
+			itemKey := MdMaker.Bold(queryParamsItem.Key)
+			itemValue := queryParamsItem.Value
+			if queryParamsItem.Description != "" {
+				itemValue += "<br>" + queryParamsItem.Description
+			}
+			tempData := make([]string, 0)
+			tempData = append(tempData, itemKey, itemValue)
+			queryParamsDataSlice = append(queryParamsDataSlice, tempData)
+		}
+		re += MdMaker.Table(queryParamsTitleSlice, queryParamsDataSlice)
+	}
+
+	// todo Example
 
 	if item.Request.Body != nil && item.Request.Body.Raw != "" {
 		re += MdMaker.Title("Body", 6)
