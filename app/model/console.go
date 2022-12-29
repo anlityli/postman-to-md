@@ -1,6 +1,7 @@
 package model
 
 type RunParam struct {
-	Path  string
-	Split bool
+	InputPath  string
+	OutputPath string
+	Split      bool
 }

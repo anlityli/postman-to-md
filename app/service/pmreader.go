@@ -5,7 +5,9 @@ import (
 	"github.com/gogf/gf/encoding/gjson"
 	"github.com/gogf/gf/os/gfile"
 	"github.com/gogf/gf/os/gtime"
+	"github.com/gogf/gf/text/gstr"
 	"github.com/gogf/gf/util/gconv"
+	"postman-to-md/app/constant"
 	"postman-to-md/app/model"
 )
 
@@ -20,7 +22,7 @@ func (s *pmReaderService) Run(param *model.RunParam) (err error) {
 	if err != nil {
 		return err
 	}
-	err = s.DataHandler(contentObj)
+	err = s.DataHandler(param, contentObj)
 	if err != nil {
 		return err
 	}
@@ -28,10 +30,10 @@ func (s *pmReaderService) Run(param *model.RunParam) (err error) {
 }
 
 func (s *pmReaderService) ReadJsonFile(param *model.RunParam, contentObj *model.Collection) (err error) {
-	if !gfile.IsFile(param.Path) {
+	if !gfile.IsFile(param.InputPath) {
 		return errors.New("failed to open the file. Please check whether the file path is correct")
 	}
-	fileContent := gfile.GetContents(param.Path)
+	fileContent := gfile.GetContents(param.InputPath)
 	if fileContent == "" {
 		return errors.New("the content of file is empty")
 	}
@@ -49,8 +51,20 @@ func (s *pmReaderService) ReadJsonFile(param *model.RunParam, contentObj *model.
 	return nil
 }
 
-func (s *pmReaderService) DataHandler(contentObj *model.Collection) (err error) {
-	rootPath := "/Volumes/HDD/GoProject/postman-to-md/temp/test" + gtime.Now().Format("YmdHis")
+func (s *pmReaderService) DataHandler(param *model.RunParam, contentObj *model.Collection) (err error) {
+	rootPath := param.OutputPath
+	if rootPath == "" && constant.Env == "dev" {
+		rootPath += "temp"
+	}
+	if rootPath != "" {
+		if !gfile.IsDir(rootPath) {
+			return errors.New(rootPath + " is not dir")
+		}
+		if gstr.PosRRune(rootPath, "/") != gstr.LenRune(rootPath)-1 {
+			rootPath += "/"
+		}
+	}
+	rootPath += "output_" + gtime.Now().Format("YmdHis")
 	err = gfile.Mkdir(rootPath)
 	if err != nil {
 		return err
